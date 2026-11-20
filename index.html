@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1e4d3a">
+  <title>Secret Santa</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <svg class="ornament" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M32 6 L37 22 L54 22 L40 32 L45 48 L32 38 L19 48 L24 32 L10 22 L27 22 Z" />
+    </svg>
+    <h1 id="event-name">Secret Santa</h1>
+    <p class="tagline">Tirez au sort, gardez le secret, faites plaisir.</p>
+  </header>
+
+  <main>
+    <noscript><p class="notice notice-error">Ce site a besoin de JavaScript.</p></noscript>
+
+    <!-- Erreur de configuration (config.js non rempli) -->
+    <section id="screen-config" class="card" hidden>
+      <h2>Configuration incomplète</h2>
+      <p id="config-msg"></p>
+    </section>
+
+    <!-- Écran d'accueil : code du groupe -->
+    <section id="screen-gate" class="card" hidden>
+      <h2>Bienvenue&nbsp;!</h2>
+      <p>Entrez le code du groupe donné par l'organisateur.</p>
+      <form id="gate-form" autocomplete="off" novalidate>
+        <label for="gate-code">Code du groupe</label>
+        <input id="gate-code" name="code" type="text" required autocapitalize="characters"
+               spellcheck="false" inputmode="text" maxlength="60">
+        <button type="submit" class="btn btn-primary">Entrer</button>
+        <p class="form-error" id="gate-error" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Écran principal -->
+    <section id="screen-event" hidden>
+      <dl class="facts">
+        <div><dt>Budget</dt><dd id="fact-budget">–</dd></div>
+        <div><dt>Échange des cadeaux</dt><dd id="fact-exchange">–</dd></div>
+        <div><dt>Fin des inscriptions</dt><dd id="fact-deadline">–</dd></div>
+        <div><dt>Tirage au sort</dt><dd id="fact-draw">–</dd></div>
+      </dl>
+
+      <section id="countdown-card" class="card countdown-card" hidden>
+        <p class="countdown-label">Tirage au sort dans</p>
+        <div class="countdown" id="countdown" aria-live="off">
+          <div><span id="cd-days">0</span><small>jours</small></div>
+          <div><span id="cd-hours">00</span><small>heures</small></div>
+          <div><span id="cd-mins">00</span><small>min</small></div>
+          <div><span id="cd-secs">00</span><small>s</small></div>
+        </div>
+      </section>
+
+      <p id="status-msg" class="notice" hidden role="status"></p>
+
+      <!-- Code personnel affiché juste après l'inscription -->
+      <section id="code-card" class="card code-card" hidden>
+        <h2>Ton code personnel</h2>
+        <p>Bienvenue <strong id="code-name"></strong>&nbsp;! Voici ton code&nbsp;:</p>
+        <p class="personal-code" id="code-value"></p>
+        <p class="advice">📸 <strong>Note-le ou fais une capture d'écran maintenant.</strong>
+          Il ne sera plus jamais affiché, et tu en auras besoin pour découvrir à qui tu offres un cadeau.</p>
+        <div class="row">
+          <button type="button" class="btn" id="code-copy">Copier le code</button>
+          <button type="button" class="btn btn-primary" id="code-done">C'est noté&nbsp;!</button>
+        </div>
+      </section>
+
+      <!-- Inscription -->
+      <section id="register-card" class="card" hidden>
+        <h2>Je m'inscris</h2>
+        <p class="muted" id="register-hint"></p>
+        <form id="register-form" autocomplete="off" novalidate>
+          <label for="reg-name">Prénom</label>
+          <input id="reg-name" type="text" required maxlength="40" autocomplete="given-name">
+          <label for="reg-wish">Liste d'envies <span class="muted">(facultatif, modifiable plus tard)</span></label>
+          <textarea id="reg-wish" rows="5" maxlength="2000"
+                    placeholder="Un livre de cuisine, des chaussettes rigolotes, un lien vers un article…"></textarea>
+          <button type="submit" class="btn btn-primary">M'inscrire</button>
+          <p class="form-error" id="register-error" role="alert"></p>
+        </form>
+      </section>
+
+      <!-- Révélation après le tirage -->
+      <section id="reveal-card" class="card" hidden>
+        <h2>À qui j'offre&nbsp;?</h2>
+        <form id="reveal-form" autocomplete="off" novalidate>
+          <label for="rev-name">Prénom</label>
+          <input id="rev-name" type="text" required maxlength="40" autocomplete="given-name">
+          <label for="rev-code">Code personnel</label>
+          <input id="rev-code" type="text" required maxlength="12" autocapitalize="characters"
+                 spellcheck="false" class="code-input" placeholder="ABC 234">
+          <button type="submit" class="btn btn-primary">Découvrir</button>
+          <p class="form-error" id="reveal-error" role="alert"></p>
+        </form>
+        <div id="reveal-result" class="reveal-result" hidden>
+          <p class="muted"><span id="res-giver"></span>, tu offres un cadeau à&nbsp;:</p>
+          <p class="receiver" id="res-name"></p>
+          <h3>Sa liste d'envies</h3>
+          <div class="wishlist" id="res-wish"></div>
+          <p class="muted small" id="res-budget"></p>
+          <button type="button" class="btn" id="res-hide">Masquer</button>
+        </div>
+      </section>
+
+      <!-- Modifier sa liste d'envies -->
+      <details id="wish-card" class="card" hidden>
+        <summary>Modifier ma liste d'envies</summary>
+        <form id="wish-form" autocomplete="off" novalidate>
+          <label for="wish-name">Prénom</label>
+          <input id="wish-name" type="text" required maxlength="40" autocomplete="given-name">
+          <label for="wish-code">Code personnel</label>
+          <input id="wish-code" type="text" required maxlength="12" autocapitalize="characters"
+                 spellcheck="false" class="code-input" placeholder="ABC 234">
+          <label for="wish-text">Nouvelle liste d'envies</label>
+          <textarea id="wish-text" rows="5" maxlength="2000"></textarea>
+          <p class="muted small">La nouvelle liste remplace l'ancienne.</p>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <p class="form-error" id="wish-error" role="alert"></p>
+          <p class="form-ok" id="wish-ok" role="status"></p>
+        </form>
+      </details>
+
+      <!-- Inscrits -->
+      <section class="card" id="participants-card">
+        <h2>Inscrits <span class="count" id="participants-count">0</span></h2>
+        <ul class="names" id="participants-list"></ul>
+      </section>
+
+      <p class="footer-actions">
+        <button type="button" class="link-btn" id="logout">Changer de groupe</button>
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Personne, pas même l'organisateur, ne voit les paires sur ce site. Joyeux Noël 🎄</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

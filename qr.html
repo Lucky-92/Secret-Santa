@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>QR code</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>QR code du site</h1>
+    <p class="tagline">Outil pour l'organisateur.</p>
+  </header>
+  <main>
+    <section class="card">
+      <label for="url">Adresse du site</label>
+      <input id="url" type="text" spellcheck="false">
+      <div class="qr-wrap">
+        <p><canvas id="qr" width="1024" height="1024" aria-label="QR code"></canvas></p>
+        <a id="download" class="btn btn-primary" download="qr-code-secret-santa.png" href="#">Télécharger le PNG</a>
+      </div>
+      <p class="muted small">Le QR code ne contient que l'adresse du site, pas le code du groupe :
+        communiquez celui-ci séparément (à l'oral, par message…).</p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script>
+    (() => {
+      const input = document.getElementById('url');
+      const canvas = document.getElementById('qr');
+      const link = document.getElementById('download');
+      const ctx = canvas.getContext('2d');
+
+      // Par défaut : l'adresse de ce site (la page qr.html retirée)
+      input.value = location.protocol.startsWith('http')
+        ? location.origin + location.pathname.replace(/qr\.html$/, '')
+        : 'https://VOTRE-PSEUDO.github.io/VOTRE-DEPOT/';
+
+      function draw() {
+        const url = input.value.trim();
+        if (!url) return;
+        const qr = qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        const n = qr.getModuleCount();
+        const margin = 4;
+        const scale = Math.floor(1024 / (n + margin * 2));
+        const size = scale * (n + margin * 2);
+        canvas.width = canvas.height = size;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#000000';
+        for (let r = 0; r < n; r++) {
+          for (let c = 0; c < n; c++) {
+            if (qr.isDark(r, c)) ctx.fillRect((c + margin) * scale, (r + margin) * scale, scale, scale);
+          }
+        }
+        link.href = canvas.toDataURL('image/png');
+      }
+
+      input.addEventListener('input', draw);
+      draw();
+    })();
+  </script>
+</body>
+</html>

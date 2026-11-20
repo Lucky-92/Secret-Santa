@@ -1,0 +1,6 @@
+# Configuration remplie (code du groupe, prénoms) : ne jamais publier
+config.sql
+*.local.sql
+
+.DS_Store
+Thumbs.db
