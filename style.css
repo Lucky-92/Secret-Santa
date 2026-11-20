@@ -46,31 +46,96 @@ body {
   font-size: 16px;
   line-height: 1.5;
   color: var(--ink);
-  background-color: var(--bg);
-  /* neige très discrète */
-  background-image:
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--gold) 14%, transparent) 0 1.5px, transparent 2px),
-    radial-gradient(circle at 78% 42%, color-mix(in srgb, var(--gold) 12%, transparent) 0 1.5px, transparent 2px),
-    radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--gold) 10%, transparent) 0 1.5px, transparent 2px);
-  background-size: 180px 180px, 240px 240px, 300px 300px;
+  background-color: #06102a;
+  background-image: linear-gradient(to bottom, #040a1c 0%, #0a1838 45%, #1a2f5c 80%, #2b4170 100%);
 }
 
 [hidden] { display: none !important; }
 
+/* ---------- Décor de nuit ---------- */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(to bottom, #040a1c 0%, #0a1838 45%, #1a2f5c 78%, #2b4170 100%);
+}
+.sky-stars { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sky-stars .tw { animation: twinkle 3s ease-in-out infinite; }
+@keyframes twinkle {
+  0%, 100% { opacity: var(--o, .9); }
+  50% { opacity: .15; }
+}
+.moon {
+  position: absolute;
+  top: 7vh;
+  left: 9vw;
+  width: clamp(44px, 9vw, 80px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 62% 38%, rgba(0, 0, 0, .07) 0 12%, transparent 13%),
+    radial-gradient(circle at 35% 62%, rgba(0, 0, 0, .06) 0 9%, transparent 10%),
+    radial-gradient(circle at 40% 35%, #fffbea, #f1e6c2 70%);
+  box-shadow: 0 0 30px 8px rgba(255, 246, 214, .28), 0 0 90px 30px rgba(255, 246, 214, .12);
+}
+.landscape {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: max(38vh, 220px);
+}
+.tree {
+  position: absolute;
+  bottom: 2vh;
+  left: 50%;
+  height: min(56vh, 480px);
+  width: auto;
+  aspect-ratio: 300 / 420;
+  transform: translateX(-50%);
+}
+/* grand écran : le sapin se place à droite du contenu */
+@media (min-width: 1200px) {
+  .tree { left: calc(50% + 310px); transform: none; }
+}
+.tree .light { animation: blink 1.8s ease-in-out infinite; }
+.tree-star { animation: shine 3s ease-in-out infinite; transform-origin: 150px 34px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes shine { 0%, 100% { opacity: 1; } 50% { opacity: .75; } }
+
+#snow {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-stars .tw, .tree .light, .tree-star { animation: none; }
+}
+
+.site-header, main, .site-footer { position: relative; z-index: 2; }
+
+/* ---------- Contenu ---------- */
 .site-header {
   text-align: center;
   padding: 40px 16px 8px;
 }
-.ornament { width: 36px; height: 36px; fill: var(--gold); }
+.ornament { width: 36px; height: 36px; fill: #f0c05a; filter: drop-shadow(0 0 8px rgba(255, 211, 107, .6)); }
 h1 {
   font-family: var(--font-title);
   font-weight: 700;
   font-size: clamp(2rem, 7vw, 2.8rem);
   line-height: 1.1;
   margin: 8px 0 6px;
-  color: var(--green);
+  color: #f7e8c4;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, .45);
 }
-.tagline { margin: 0; color: var(--muted); }
+.tagline { margin: 0; color: #c9d4ea; }
 
 main {
   max-width: 560px;
@@ -87,7 +152,9 @@ h2 {
 h3 { font-size: 1rem; margin: 20px 0 6px; }
 
 .card {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px;
@@ -159,7 +226,9 @@ form .btn { margin-top: 18px; width: 100%; }
   margin: 0 0 16px;
 }
 .facts div {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
@@ -192,7 +261,9 @@ form .btn { margin-top: 18px; width: 100%; }
 .countdown small { color: var(--muted); font-size: .78rem; }
 
 .notice {
-  background: var(--notice);
+  background: color-mix(in srgb, var(--notice) 94%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--line);
   border-left: 4px solid var(--green);
   border-radius: 12px;
@@ -273,7 +344,19 @@ details.card summary {
 }
 
 .footer-actions { text-align: center; margin: 8px 0 0; }
-.site-footer { text-align: center; color: var(--muted); font-size: .875rem; padding: 16px 16px 32px; }
+.footer-actions .link-btn { color: #c9d4ea; }
+.site-footer { text-align: center; color: #d6deef; font-size: .875rem; padding: 16px 16px 32px; }
+.site-footer p {
+  display: inline-block;
+  max-width: 528px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(4, 10, 28, .6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.footer-actions .link-btn:focus-visible { outline-color: #f7e8c4; }
 
 /* Page QR */
 .qr-wrap { text-align: center; }
