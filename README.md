@@ -98,7 +98,7 @@ select private.test_mode(3, 5);
    ```sql
    select * from private.check_draw();
    ```
-   Le résultat indique le nombre d'attributions, les auto-attributions (toujours 0), les exclusions non respectées (toujours 0) et les exclusions dont un prénom n'est pas inscrit (pratique pour repérer une faute de frappe).
+   Le résultat indique le nombre d'attributions, les auto-attributions (toujours 0), les paires réciproques (0), la longueur du cycle (égale au nombre d'inscrits), les exclusions non respectées (toujours 0) et les exclusions dont un prénom n'est pas inscrit (pratique pour repérer une faute de frappe).
 5. Remettez tout à zéro, puis relancez votre configuration (étape 3) avec les vraies dates :
    ```sql
    select private.reset_all();   -- supprime les inscrits de test et le tirage
@@ -128,7 +128,7 @@ Ces fonctions sont dans le schéma `private`, qui n'est pas exposé par l'API. L
 2. **Inscription** (jusqu'à la date limite) : prénom + liste d'envies facultative. Les doublons sont bloqués sans tenir compte des majuscules, des accents ni des espaces (« Léa » = « lea »).
 3. **Code personnel** : 6 caractères aléatoires générés côté serveur (alphabet sans `0`, `O`, `1`, `I`), affichés **une seule fois**. Seul leur hash bcrypt est stocké.
 4. **Compte à rebours** jusqu'au tirage, calé sur l'horloge du serveur.
-5. **Tirage** : le premier visiteur après l'heure le déclenche. La fonction est idempotente et verrouillée : même si plusieurs personnes arrivent à la même seconde, il n'y a qu'un tirage. Il s'agit d'une permutation aléatoire où personne ne tombe sur soi-même et où les exclusions sont respectées.
+5. **Tirage** : le premier visiteur après l'heure le déclenche. La fonction est idempotente et verrouillée : même si plusieurs personnes arrivent à la même seconde, il n'y a qu'un tirage. Le tirage forme un **cycle unique** : on mélange les participants, chacun offre au suivant et le dernier au premier (A → B → C → … → A). Personne ne tombe sur soi-même, il n'y a pas de paire réciproque (A ↔ B, sauf avec seulement 2 inscrits), et les exclusions sont respectées.
 6. **Révélation** : prénom + code personnel affichent uniquement la personne à qui l'on offre et sa liste d'envies. Après 10 codes faux, le prénom est bloqué 15 minutes.
 7. Chacun peut **modifier sa liste d'envies** à tout moment avec son code, y compris après le tirage.
 

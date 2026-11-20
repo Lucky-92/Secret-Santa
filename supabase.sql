@@ -160,7 +160,7 @@ language plpgsql volatile set search_path = '' as $$
 declare
   s         public.settings;
   givers    bigint[];
-  receivers bigint[];
+  ring      bigint[];
   excl      text[];
   n         int;
   ok        boolean;
@@ -188,14 +188,15 @@ begin
     join public.participants pa on pa.name_key = private.name_key(e.name_a)
     join public.participants pb on pb.name_key = private.name_key(e.name_b);
 
-  -- Permutation aléatoire uniforme, rejetée si quelqu'un se tire lui-même
-  -- ou si une exclusion n'est pas respectée.
+  -- Cycle unique : on mélange les participants, chacun offre au suivant et le
+  -- dernier au premier (A -> B -> C -> ... -> A). Personne ne se tire lui-même,
+  -- pas de paire réciproque A <-> B (sauf s'il n'y a que 2 inscrits), et tout le
+  -- monde est dans la même boucle. Mélange rejeté si une exclusion est violée.
   for attempt in 1..5000 loop
-    select array_agg(x order by random()) into receivers from unnest(givers) as x;
+    select array_agg(x order by random()) into ring from unnest(givers) as x;
     ok := true;
     for i in 1..n loop
-      if givers[i] = receivers[i]
-         or (least(givers[i], receivers[i]) || ':' || greatest(givers[i], receivers[i])) = any(excl) then
+      if (least(ring[i], ring[(i % n) + 1]) || ':' || greatest(ring[i], ring[(i % n) + 1])) = any(excl) then
         ok := false;
         exit;
       end if;
@@ -204,7 +205,7 @@ begin
     if ok then
       delete from public.assignments where true;
       insert into public.assignments (giver_id, receiver_id)
-        select givers[k], receivers[k] from generate_subscripts(givers, 1) as k;
+        select ring[k], ring[(k % n) + 1] from generate_subscripts(ring, 1) as k;
       update public.settings set draw_done_at = now(), draw_error = null where id = 1;
       return 'done';
     end if;
@@ -405,6 +406,23 @@ language sql stable set search_path = '' as $$
   union all
   select 'Personnes tombées sur elles-mêmes',
          count(*)::text from public.assignments where giver_id = receiver_id
+  union all
+  select 'Paires réciproques (A <-> B)',
+         count(*)::text from public.assignments a
+          join public.assignments b on b.giver_id = a.receiver_id and b.receiver_id = a.giver_id
+         where a.giver_id < a.receiver_id
+  union all
+  -- longueur de la boucle qui part du premier inscrit : doit être égale au nombre d'attributions
+  select 'Longueur du cycle', coalesce((
+    with recursive c(id, len) as (
+      select a.receiver_id, 1 from public.assignments a
+       where a.giver_id = (select min(giver_id) from public.assignments)
+      union all
+      select a.receiver_id, c.len + 1 from c
+        join public.assignments a on a.giver_id = c.id
+       where c.id <> (select min(giver_id) from public.assignments) and c.len < 10000
+    )
+    select max(len)::text from c), '–')
   union all
   select 'Exclusions non respectées', count(*)::text
     from public.assignments a
