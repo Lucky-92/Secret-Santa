@@ -1,5 +1,5 @@
 -- =====================================================================
---  Configuration de VOTRE Spyder Secret Santa
+--  Configuration de VOTRE Sp!der Secret Santa
 -- ---------------------------------------------------------------------
 --  1. Copiez ce fichier dans Supabase > SQL Editor > New query.
 --  2. Remplacez les valeurs marquées  <-- À MODIFIER.
