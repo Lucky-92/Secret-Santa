@@ -179,7 +179,7 @@
     $('screen-gate').hidden = true;
     $('screen-event').hidden = false;
 
-    const title = info.event_name || 'Secret Santa';
+    const title = info.event_name || 'Spyder Secret Santa';
     $('event-name').textContent = title;
     document.title = title;
 

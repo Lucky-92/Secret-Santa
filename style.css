@@ -125,7 +125,13 @@ body {
   text-align: center;
   padding: 40px 16px 8px;
 }
-.ornament { width: 36px; height: 36px; fill: #f0c05a; filter: drop-shadow(0 0 8px rgba(255, 211, 107, .6)); }
+.mascot {
+  display: block;
+  width: clamp(130px, 38vw, 180px);
+  height: auto;
+  margin: 0 auto -4px;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .35));
+}
 h1 {
   font-family: var(--font-title);
   font-weight: 700;

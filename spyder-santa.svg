@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="26 104 348 288" width="348" height="288">
+  <title>Araignée avec un bonnet de Père Noël</title>
+  <defs>
+    <radialGradient id="body" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#b4bcc6"/>
+      <stop offset="1" stop-color="#5d6672"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#4a3326"/>
+      <stop offset="0.6" stop-color="#140c08"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="hat" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e63946"/>
+      <stop offset="1" stop-color="#b11e2c"/>
+    </linearGradient>
+    <g id="legs-left" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 3e paire levée (signature de l'araignée paon) -->
+      <path d="M150 244 Q104 232 70 214 Q50 180 44 138" stroke="#6b7480" stroke-width="11"/>
+      <circle cx="70" cy="214" r="5" fill="#f4f1ea" stroke="none"/>
+      <circle cx="44" cy="136" r="8" fill="#f4f1ea" stroke="none"/>
+      <!-- 4e paire -->
+      <path d="M160 288 Q128 318 122 352" stroke="#6b7480" stroke-width="10"/>
+      <circle cx="132" cy="313" r="4.5" fill="#f6ae2d" stroke="none"/>
+      <!-- 2e paire -->
+      <path d="M146 266 Q110 262 86 276 Q68 290 58 318" stroke="#6b7480" stroke-width="10"/>
+      <circle cx="88" cy="275" r="4.5" fill="#f6ae2d" stroke="none"/>
+      <!-- 1re paire -->
+      <path d="M154 280 Q122 296 104 318 Q94 334 92 356" stroke="#6b7480" stroke-width="10"/>
+      <circle cx="106" cy="316" r="4.5" fill="#f4f1ea" stroke="none"/>
+    </g>
+  </defs>
+
+  <!-- ombre au sol -->
+  <ellipse cx="200" cy="372" rx="120" ry="12" fill="#000000" opacity=".12"/>
+
+  <!-- pattes (gauche + miroir) -->
+  <use href="#legs-left"/>
+  <use href="#legs-left" transform="translate(400 0) scale(-1 1)"/>
+
+  <!-- corps / tête -->
+  <ellipse cx="200" cy="264" rx="74" ry="62" fill="url(#body)"/>
+  <!-- petite bande orangée -->
+  <path d="M138 296 Q200 330 262 296" fill="none" stroke="#f6ae2d" stroke-width="6" stroke-linecap="round" opacity=".85"/>
+
+  <!-- pédipalpes blancs et duveteux -->
+  <ellipse cx="186" cy="318" rx="7" ry="6" fill="#f4f1ea"/>
+  <ellipse cx="214" cy="318" rx="7" ry="6" fill="#f4f1ea"/>
+
+  <!-- yeux -->
+  <circle cx="141" cy="240" r="9" fill="url(#eye)"/>
+  <circle cx="259" cy="240" r="9" fill="url(#eye)"/>
+  <circle cx="138.5" cy="237" r="2.6" fill="#ffffff"/>
+  <circle cx="256.5" cy="237" r="2.6" fill="#ffffff"/>
+
+  <circle cx="176" cy="256" r="24" fill="url(#eye)"/>
+  <circle cx="224" cy="256" r="24" fill="url(#eye)"/>
+  <circle cx="176" cy="256" r="24" fill="none" stroke="#3a4048" stroke-width="2"/>
+  <circle cx="224" cy="256" r="24" fill="none" stroke="#3a4048" stroke-width="2"/>
+  <circle cx="168" cy="246" r="8.5" fill="#ffffff"/>
+  <circle cx="216" cy="246" r="8.5" fill="#ffffff"/>
+  <circle cx="184" cy="265" r="3.5" fill="#ffffff" opacity=".85"/>
+  <circle cx="232" cy="265" r="3.5" fill="#ffffff" opacity=".85"/>
+
+  <!-- joues et sourire -->
+  <ellipse cx="150" cy="282" rx="11" ry="6" fill="#ff9fb2" opacity=".8"/>
+  <ellipse cx="250" cy="282" rx="11" ry="6" fill="#ff9fb2" opacity=".8"/>
+  <path d="M192 290 Q200 297 208 290" fill="none" stroke="#2c3138" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- bonnet de Père Noël -->
+  <g transform="rotate(-8 200 212)">
+    <path d="M164 208 Q168 162 204 144 Q236 130 266 152 Q244 160 238 208 Z" fill="url(#hat)"/>
+    <path d="M204 144 Q236 130 266 152 Q248 156 236 172 Q224 152 204 144 Z" fill="#c1121f" opacity=".5"/>
+    <rect x="156" y="198" width="90" height="22" rx="11" fill="#fbfbfb"/>
+    <g fill="#e3e6ea">
+      <circle cx="170" cy="210" r="3.2"/><circle cx="187" cy="205" r="3"/><circle cx="203" cy="212" r="3.2"/>
+      <circle cx="219" cy="206" r="3"/><circle cx="233" cy="211" r="3.2"/>
+    </g>
+    <circle cx="270" cy="154" r="13" fill="#fbfbfb"/>
+    <circle cx="266" cy="150" r="4" fill="#ffffff"/>
+    <circle cx="275" cy="159" r="3" fill="#e3e6ea"/>
+  </g>
+</svg>
