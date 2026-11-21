@@ -106,6 +106,23 @@ select private.test_mode(3, 5);
 
 ---
 
+## 🔑 Espace organisateur (sur le site)
+
+Le lien **« Espace organisateur »** se trouve en bas de page. On peut aussi y aller directement avec l'adresse du site suivie de `#admin`. Il permet de :
+
+- voir le nombre d'inscrits, leurs prénoms, les dates et l'état du tirage (**jamais les paires**) ;
+- **fixer le temps restant avant le tirage** (jours, heures, minutes à partir de maintenant ; si tout vaut 0, le tirage a lieu dans 1 minute). Un tirage déjà effectué est annulé et refait à la nouvelle heure. Si la fin des inscriptions est déjà passée, ou tombe après la nouvelle heure de tirage, elle est alignée sur le tirage, ce qui rouvre les inscriptions jusque-là ;
+- **rincer les participants**, c'est-à-dire supprimer tous les inscrits et le tirage ;
+- changer le mot de passe (8 caractères minimum).
+
+**Activer le compte** (une fois, dans le SQL Editor, avec vos propres valeurs) :
+```sql
+select private.set_admin('identifiant', 'mot-de-passe');
+```
+L'identifiant et le mot de passe ne sont jamais dans le dépôt. Le mot de passe est stocké haché. Après 5 essais ratés, l'espace est bloqué 15 minutes. Pour le débloquer plus tôt : `select private.admin_unlock();`. En cas d'oubli, relancez simplement `private.set_admin(...)`.
+
+---
+
 ## 🛠️ Commandes utiles pour l'organisateur (SQL Editor)
 
 | Besoin | Commande |

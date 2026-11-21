@@ -44,6 +44,12 @@ create table if not exists public.settings (
 );
 insert into public.settings (id) values (1) on conflict (id) do nothing;
 
+-- Compte organisateur du site (identifiant + hash bcrypt du mot de passe)
+alter table public.settings add column if not exists admin_login         text;
+alter table public.settings add column if not exists admin_password_hash text;
+alter table public.settings add column if not exists admin_failed        int not null default 0;
+alter table public.settings add column if not exists admin_locked_until  timestamptz;
+
 create table if not exists public.participants (
   id              bigint generated always as identity primary key,
   first_name      text not null check (char_length(first_name) between 1 and 40),
@@ -366,8 +372,155 @@ end $$;
 
 
 -- ---------------------------------------------------------------------
+--  Espace organisateur du site
+--  Identifiant + mot de passe vérifiés côté serveur (bcrypt).
+--  5 échecs => espace bloqué 15 minutes. Aucune fonction ne renvoie les paires.
+-- ---------------------------------------------------------------------
+
+create or replace function private.admin_auth(p_login text, p_password text) returns text
+language plpgsql volatile set search_path = '' as $$
+declare
+  s        public.settings;
+  v_pwd_ok boolean;
+begin
+  select * into s from public.settings where id = 1 for update;
+  if s.admin_login is null or s.admin_password_hash is null then
+    return 'admin_disabled';
+  end if;
+  if s.admin_locked_until is not null and s.admin_locked_until > now() then
+    return 'admin_locked';
+  end if;
+
+  v_pwd_ok := s.admin_password_hash = extensions.crypt(coalesce(p_password, ''), s.admin_password_hash);
+  if v_pwd_ok and lower(btrim(coalesce(p_login, ''))) = s.admin_login then
+    update public.settings set admin_failed = 0, admin_locked_until = null where id = 1;
+    return null;
+  end if;
+
+  update public.settings
+     set admin_failed       = case when s.admin_failed + 1 >= 5 then 0 else s.admin_failed + 1 end,
+         admin_locked_until = case when s.admin_failed + 1 >= 5 then now() + interval '15 minutes' else null end
+   where id = 1;
+  return 'bad_admin_credentials';
+end $$;
+
+create or replace function private.admin_status() returns json
+language sql stable set search_path = '' as $$
+  select json_build_object(
+    'ok', true,
+    'participants', coalesce((select json_agg(p.first_name order by p.name_key) from public.participants p), '[]'::json),
+    'registration_deadline', floor(extract(epoch from s.registration_deadline) * 1000),
+    'draw_at', floor(extract(epoch from s.draw_at) * 1000),
+    'draw_done', s.draw_done_at is not null,
+    'draw_error', s.draw_error,
+    'assignments', (select count(*) from public.assignments),
+    'server_now', floor(extract(epoch from clock_timestamp()) * 1000)
+  )
+  from public.settings s where s.id = 1
+$$;
+
+-- Connexion : renvoie l'état (inscrits, dates, statut du tirage), jamais les paires
+create or replace function public.admin_login(p_login text, p_password text) returns json
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_err text := private.admin_auth(p_login, p_password);
+begin
+  if v_err is not null then
+    return json_build_object('ok', false, 'error', v_err);
+  end if;
+  perform private.run_draw_if_due();
+  return private.admin_status();
+end $$;
+
+-- Rincer : supprime tous les inscrits et le tirage
+create or replace function public.admin_reset_participants(p_login text, p_password text) returns json
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_err text := private.admin_auth(p_login, p_password);
+begin
+  if v_err is not null then
+    return json_build_object('ok', false, 'error', v_err);
+  end if;
+  delete from public.assignments where true;
+  delete from public.participants where true;
+  update public.settings set draw_done_at = null, draw_error = null where id = 1;
+  return private.admin_status();
+end $$;
+
+-- Fixe le tirage dans N minutes (0 ou moins => 1 minute). Annule un tirage déjà fait.
+-- Fin des inscriptions : conservée si elle est encore à venir et avant le tirage,
+-- sinon alignée sur l'heure du tirage (les inscriptions rouvrent jusqu'au tirage).
+create or replace function public.admin_set_draw_in(p_login text, p_password text, p_minutes int) returns json
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_err  text := private.admin_auth(p_login, p_password);
+  v_draw timestamptz;
+begin
+  if v_err is not null then
+    return json_build_object('ok', false, 'error', v_err);
+  end if;
+  if p_minutes is not null and p_minutes > 525600 then
+    return json_build_object('ok', false, 'error', 'invalid_duration');
+  end if;
+
+  v_draw := now() + make_interval(mins => greatest(coalesce(p_minutes, 0), 1));
+  delete from public.assignments where true;
+  update public.settings
+     set draw_at = v_draw,
+         draw_done_at = null,
+         draw_error = null,
+         registration_deadline = case
+           when registration_deadline > v_draw or registration_deadline <= now() then v_draw
+           else registration_deadline end
+   where id = 1;
+  return private.admin_status();
+end $$;
+
+create or replace function public.admin_change_password(p_login text, p_password text, p_new_password text) returns json
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_err text := private.admin_auth(p_login, p_password);
+begin
+  if v_err is not null then
+    return json_build_object('ok', false, 'error', v_err);
+  end if;
+  if char_length(coalesce(p_new_password, '')) < 8 then
+    return json_build_object('ok', false, 'error', 'weak_password');
+  end if;
+  update public.settings
+     set admin_password_hash = extensions.crypt(p_new_password, extensions.gen_salt('bf', 10))
+   where id = 1;
+  return json_build_object('ok', true);
+end $$;
+
+
+-- ---------------------------------------------------------------------
 --  Fonctions d'administration (SQL Editor uniquement, jamais via le site)
 -- ---------------------------------------------------------------------
+
+-- Crée ou remplace le compte organisateur du site.
+create or replace function private.set_admin(p_login text, p_password text) returns text
+language plpgsql volatile set search_path = '' as $$
+begin
+  if char_length(btrim(coalesce(p_login, ''))) < 3 or char_length(coalesce(p_password, '')) < 6 then
+    raise exception 'Identifiant : 3 caractères minimum. Mot de passe : 6 caractères minimum.';
+  end if;
+  update public.settings
+     set admin_login = lower(btrim(p_login)),
+         admin_password_hash = extensions.crypt(p_password, extensions.gen_salt('bf', 10)),
+         admin_failed = 0,
+         admin_locked_until = null
+   where id = 1;
+  return 'Compte organisateur enregistré (mot de passe haché).';
+end $$;
+
+-- Débloque l'espace organisateur après trop d'essais.
+create or replace function private.admin_unlock() returns text
+language plpgsql volatile set search_path = '' as $$
+begin
+  update public.settings set admin_failed = 0, admin_locked_until = null where id = 1;
+  return 'Espace organisateur débloqué.';
+end $$;
 
 -- Définit (ou change) le code d'accès du groupe. Stocké haché.
 create or replace function private.set_group_code(p_code text) returns text
@@ -526,5 +679,16 @@ grant execute on function public.get_event_info(text)                        to 
 grant execute on function public.register_participant(text, text, text)      to anon, authenticated;
 grant execute on function public.update_wishlist(text, text, text, text)     to anon, authenticated;
 grant execute on function public.get_my_match(text, text, text)              to anon, authenticated;
+
+-- Espace organisateur (protégé par identifiant + mot de passe)
+revoke all on function public.admin_login(text, text)                        from public, anon, authenticated;
+revoke all on function public.admin_reset_participants(text, text)           from public, anon, authenticated;
+revoke all on function public.admin_set_draw_in(text, text, int)             from public, anon, authenticated;
+revoke all on function public.admin_change_password(text, text, text)        from public, anon, authenticated;
+
+grant execute on function public.admin_login(text, text)                     to anon, authenticated;
+grant execute on function public.admin_reset_participants(text, text)        to anon, authenticated;
+grant execute on function public.admin_set_draw_in(text, text, int)          to anon, authenticated;
+grant execute on function public.admin_change_password(text, text, text)     to anon, authenticated;
 
 -- Fin. Étape suivante : config.example.sql (à exécuter dans le SQL Editor, sans le committer rempli).

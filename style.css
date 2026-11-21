@@ -357,6 +357,27 @@ details.card summary {
   backdrop-filter: blur(6px);
 }
 .footer-actions .link-btn:focus-visible { outline-color: #f7e8c4; }
+.site-footer .link-btn { display: block; margin: 10px auto 0; color: #aab6cf; font-size: .8rem; }
+.site-footer .link-btn:focus-visible { outline-color: #f7e8c4; }
+
+/* Espace organisateur */
+.btn-danger { background: var(--red); border-color: var(--red); color: var(--green-ink); }
+.btn-block { width: 100%; margin-top: 8px; }
+.admin-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 8px 0 12px; }
+.admin-stats dt { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.admin-stats dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.duration { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.duration label { margin-top: 6px; font-weight: 500; font-size: .9rem; }
+input[type="number"], input[type="password"] {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
 
 /* Page QR */
 .qr-wrap { text-align: center; }

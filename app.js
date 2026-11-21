@@ -16,6 +16,11 @@
     draw_not_done: "Le tirage n'a pas encore eu lieu.",
     no_match: "Aucune attribution trouvée pour toi. Contacte l'organisateur.",
     network: "Impossible de joindre le serveur. Vérifie ta connexion et réessaie.",
+    bad_admin_credentials: "Identifiant ou mot de passe incorrect.",
+    admin_locked: "Trop d'essais incorrects : l'espace organisateur est bloqué 15 minutes.",
+    admin_disabled: "Le compte organisateur n'est pas encore activé (voir le README).",
+    weak_password: "Le nouveau mot de passe doit faire au moins 8 caractères.",
+    invalid_duration: "Durée trop longue (365 jours maximum).",
   };
   const DRAW_ERRORS = {
     not_enough_participants: "Le tirage n'a pas pu avoir lieu : il faut au moins 2 participants. Contacte l'organisateur.",
@@ -123,6 +128,7 @@
   let lastPhase = null;
   let refreshing = false;
   let dueRetryAt = 0;
+  let adminOpen = false;
 
   const serverNow = () => Date.now() + clockOffset;
 
@@ -137,6 +143,7 @@
 
   // ---------- Écrans ----------
   function showGate(message) {
+    if (adminOpen) return;
     $('screen-event').hidden = true;
     $('screen-gate').hidden = false;
     $('gate-error').textContent = message || '';
@@ -168,7 +175,7 @@
   }
 
   function render() {
-    if (!info) return;
+    if (!info || adminOpen) return;
     $('screen-gate').hidden = true;
     $('screen-event').hidden = false;
 
@@ -230,6 +237,7 @@
 
   // ---------- Compte à rebours ----------
   function tick() {
+    if (adminOpen) { adminTick(); return; }
     if (!info) return;
     const p = phase();
     if (p !== lastPhase) { render(); return; }
@@ -389,9 +397,198 @@
     showGate('');
   });
 
+  // ---------- Espace organisateur ----------
+  // Identifiants gardés en mémoire seulement le temps de la session (jamais stockés).
+  let admin = null;          // { login, password }
+  let adminStatus = null;
+  let adminRefreshAt = 0;
+
+  function humanDuration(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+    if (d) return `${d} j ${h} h ${pad(m)} min`;
+    if (h) return `${h} h ${pad(m)} min`;
+    if (m) return `${m} min ${pad(s % 60)} s`;
+    return `${s % 60} s`;
+  }
+
+  function openAdmin() {
+    adminOpen = true;
+    for (const id of ['screen-gate', 'screen-event', 'screen-config']) $(id).hidden = true;
+    $('screen-admin').hidden = false;
+    $('admin-link').hidden = true;
+    $('admin-login-card').hidden = !!admin;
+    $('admin-panel').hidden = !admin;
+    if (!admin) $('adm-login').focus();
+    window.scrollTo(0, 0);
+  }
+
+  function closeAdmin() {
+    admin = null;
+    adminStatus = null;
+    adminOpen = false;
+    $('adm-pass').value = '';
+    $('screen-admin').hidden = true;
+    $('admin-link').hidden = false;
+    if (location.hash === '#admin') history.replaceState(null, '', location.pathname + location.search);
+    if (groupCode) { lastPhase = null; info ? render() : showGate(''); loadInfo(); }
+    else showGate('');
+  }
+
+  function adminLoggedOut(message) {
+    admin = null;
+    adminStatus = null;
+    $('admin-panel').hidden = true;
+    $('admin-login-card').hidden = false;
+    $('adm-login-error').textContent = message || '';
+  }
+
+  async function adminCall(fn, extra) {
+    const res = await rpc(fn, { p_login: admin.login, p_password: admin.password, ...extra });
+    if (res && !res.ok && ['bad_admin_credentials', 'admin_locked', 'admin_disabled'].includes(res.error)) {
+      adminLoggedOut(errorText(res.error));
+      return null;
+    }
+    return res;
+  }
+
+  function setAdminStatus(st) {
+    adminStatus = st;
+    clockOffset = st.server_now - Date.now();
+    renderAdmin();
+  }
+
+  function renderAdmin() {
+    const st = adminStatus;
+    if (!st) return;
+    const names = st.participants || [];
+    $('adm-count').textContent = names.length;
+    $('adm-deadline').textContent = fmtDate(st.registration_deadline);
+    $('adm-draw').textContent = fmtDate(st.draw_at);
+    const ul = $('adm-names');
+    ul.textContent = '';
+    for (const n of names) {
+      const li = document.createElement('li');
+      li.textContent = n;
+      ul.append(li);
+    }
+    adminTick();
+    updateTimePreview();
+  }
+
+  function adminTick() {
+    const st = adminStatus;
+    if (!st || !admin) return;
+    let state;
+    if (st.draw_done) state = `Effectué ✓ (${st.assignments} attributions)`;
+    else if (st.draw_error) state = DRAW_ERRORS[st.draw_error] || 'Erreur';
+    else {
+      const left = st.draw_at - serverNow();
+      state = left > 0 ? `Dans ${humanDuration(left)}` : 'En cours…';
+      // heure passée : on rafraîchit, ce qui déclenche le tirage côté serveur
+      if (left <= 0 && Date.now() >= adminRefreshAt) {
+        adminRefreshAt = Date.now() + 4000;
+        adminCall('admin_login', {}).then((res) => { if (res && res.ok) setAdminStatus(res); });
+      }
+    }
+    $('adm-state').textContent = state;
+  }
+
+  function durationMinutes() {
+    const val = (id) => Math.max(0, parseInt($(id).value, 10) || 0);
+    return val('adm-days') * 1440 + val('adm-hours') * 60 + val('adm-mins');
+  }
+
+  function updateTimePreview() {
+    const mins = Math.max(1, durationMinutes());
+    $('adm-time-preview').textContent = `→ Tirage le ${fmtDate(serverNow() + mins * 60000).toLowerCase()}` +
+      (durationMinutes() === 0 ? ' (dans 1 minute)' : '');
+  }
+  for (const id of ['adm-days', 'adm-hours', 'adm-mins']) $(id).addEventListener('input', updateTimePreview);
+
+  $('admin-link').addEventListener('click', openAdmin);
+  $('adm-exit').addEventListener('click', closeAdmin);
+
+  $('admin-login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const login = $('adm-login').value.trim();
+    const password = $('adm-pass').value;
+    if (!login || !password) { $('adm-login-error').textContent = 'Entre l’identifiant et le mot de passe.'; return; }
+    withBusy(e.target, async () => {
+      $('adm-login-error').textContent = '';
+      const res = await rpc('admin_login', { p_login: login, p_password: password });
+      if (!res || !res.ok) {
+        $('adm-login-error').textContent = errorText(res && res.error);
+        return;
+      }
+      admin = { login, password };
+      $('adm-pass').value = '';
+      $('admin-login-card').hidden = true;
+      $('admin-panel').hidden = false;
+      setAdminStatus(res);
+    });
+  });
+
+  $('adm-time-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mins = durationMinutes();
+    $('adm-time-error').textContent = '';
+    $('adm-time-ok').textContent = '';
+    if (mins > 525600) { $('adm-time-error').textContent = errorText('invalid_duration'); return; }
+    if (adminStatus && adminStatus.draw_done &&
+        !confirm('Le tirage a déjà eu lieu. Le refaire à la nouvelle heure ? Les attributions actuelles seront perdues.')) return;
+    withBusy(e.target, async () => {
+      const res = await adminCall('admin_set_draw_in', { p_minutes: mins });
+      if (!res) return;
+      if (!res.ok) { $('adm-time-error').textContent = errorText(res.error); return; }
+      setAdminStatus(res);
+      $('adm-time-ok').textContent = `Tirage fixé au ${fmtDate(res.draw_at).toLowerCase()} ✓`;
+    });
+  });
+
+  $('adm-reset').addEventListener('click', async () => {
+    const n = adminStatus ? (adminStatus.participants || []).length : 0;
+    $('adm-reset-error').textContent = '';
+    $('adm-reset-ok').textContent = '';
+    if (!confirm(`Supprimer les ${n} inscrit(s) et le tirage ? C'est irréversible.`)) return;
+    const btn = $('adm-reset');
+    btn.disabled = true;
+    try {
+      const res = await adminCall('admin_reset_participants', {});
+      if (!res) return;
+      if (!res.ok) { $('adm-reset-error').textContent = errorText(res.error); return; }
+      setAdminStatus(res);
+      $('adm-reset-ok').textContent = 'Tous les participants ont été supprimés ✓';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('adm-pass-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p1 = $('adm-new').value;
+    const p2 = $('adm-new2').value;
+    $('adm-pass-error').textContent = '';
+    $('adm-pass-ok').textContent = '';
+    if (p1.length < 8) { $('adm-pass-error').textContent = errorText('weak_password'); return; }
+    if (p1 !== p2) { $('adm-pass-error').textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+    withBusy(e.target, async () => {
+      const res = await adminCall('admin_change_password', { p_new_password: p1 });
+      if (!res) return;
+      if (!res.ok) { $('adm-pass-error').textContent = errorText(res.error); return; }
+      admin.password = p1;
+      $('adm-new').value = '';
+      $('adm-new2').value = '';
+      $('adm-pass-ok').textContent = 'Mot de passe changé ✓';
+    });
+  });
+
   // ---------- Démarrage ----------
   const saved = store.get(K_GROUP);
-  if (saved) {
+  if (saved) groupCode = saved;
+  if (location.hash === '#admin') {
+    openAdmin();
+  } else if (saved) {
     groupCode = saved;
     loadInfo();
   } else {

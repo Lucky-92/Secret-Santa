@@ -15,6 +15,11 @@
 --    Choisissez quelque chose de pas trop devinable, ex. SAPIN-7342.
 select private.set_group_code('CHANGEZ-MOI-2026');                         -- <-- À MODIFIER
 
+-- 1 bis) Compte organisateur du site (lien « Espace organisateur » en bas de page).
+--        Identifiant : 3 caractères min. Mot de passe : 6 caractères min.
+--        (vous pourrez le changer ensuite depuis l'espace organisateur)
+select private.set_admin('IDENTIFIANT', 'MOT-DE-PASSE');                   -- <-- À MODIFIER
+
 -- 2) Dates (heure de Paris), budget, date d'échange.
 update public.settings set
   event_name            = 'Secret Santa',                                   -- <-- À MODIFIER (titre affiché)
