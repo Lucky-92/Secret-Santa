@@ -1,6 +1,6 @@
-# 🎁 Secret Santa
+# 🕷️🎅 Spyder Secret Santa
 
-Petit site statique de Secret Santa : un QR code, un code de groupe, des inscriptions, un tirage au sort automatique et secret.
+Petit site statique de Spyder Secret Santa : un QR code, un code de groupe, des inscriptions, un tirage au sort automatique et secret.
 
 - **Front** : HTML/CSS/JS simples, hébergés sur GitHub Pages.
 - **Back** : Supabase (offre gratuite). Tout passe par des fonctions RPC, et la RLS bloque tout accès direct aux tables.
@@ -33,7 +33,7 @@ Petit site statique de Secret Santa : un QR code, un code de groupe, des inscrip
 
 Le script peut être relancé sans perdre de données, par exemple après une mise à jour.
 
-## 3. Configurer votre Secret Santa
+## 3. Configurer votre Spyder Secret Santa
 
 1. Dans le SQL Editor, ouvrez une **nouvelle** requête.
 2. Collez le contenu de `config.example.sql` et modifiez les lignes marquées `<-- À MODIFIER` :
@@ -66,7 +66,7 @@ Le code du groupe est stocké **haché** : même dans la base, personne ne peut 
    ```bash
    git init
    git add .
-   git commit -m "Secret Santa"
+   git commit -m "Spyder Secret Santa"
    git branch -M main
    git remote add origin https://github.com/VOTRE-PSEUDO/secret-santa.git
    git push -u origin main

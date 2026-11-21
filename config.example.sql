@@ -1,5 +1,5 @@
 -- =====================================================================
---  Configuration de VOTRE Secret Santa
+--  Configuration de VOTRE Spyder Secret Santa
 -- ---------------------------------------------------------------------
 --  1. Copiez ce fichier dans Supabase > SQL Editor > New query.
 --  2. Remplacez les valeurs marquées  <-- À MODIFIER.
@@ -22,7 +22,6 @@ select private.set_admin('IDENTIFIANT', 'MOT-DE-PASSE');                   -- <-
 
 -- 2) Dates (heure de Paris), budget, date d'échange.
 update public.settings set
-  event_name            = 'Secret Santa',                                   -- <-- À MODIFIER (titre affiché)
   registration_deadline = '2026-12-10 20:00'::timestamp at time zone 'Europe/Paris',  -- <-- fin des inscriptions
   draw_at               = '2026-12-12 18:00'::timestamp at time zone 'Europe/Paris',  -- <-- date du tirage
   budget                = '30 €',                                           -- <-- À MODIFIER
@@ -41,7 +40,7 @@ where id = 1;
 -- delete from public.exclusions where true;
 
 -- 4) Vérification
-select event_name,
+select
        registration_deadline at time zone 'Europe/Paris' as fin_inscriptions_paris,
        draw_at at time zone 'Europe/Paris'               as tirage_paris,
        budget, exchange_date,

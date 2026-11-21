@@ -179,10 +179,6 @@
     $('screen-gate').hidden = true;
     $('screen-event').hidden = false;
 
-    const title = info.event_name || 'Spyder Secret Santa';
-    $('event-name').textContent = title;
-    document.title = title;
-
     $('fact-budget').textContent = info.budget || '–';
     $('fact-exchange').textContent = info.exchange_date || '–';
     $('fact-deadline').textContent = fmtDate(info.registration_deadline);

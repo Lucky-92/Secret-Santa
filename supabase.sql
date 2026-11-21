@@ -1,5 +1,5 @@
 -- =====================================================================
---  Secret Santa : schéma Supabase
+--  Spyder Secret Santa : schéma Supabase
 -- ---------------------------------------------------------------------
 --  À coller tel quel dans Supabase > SQL Editor > New query > Run.
 --  Ce fichier ne contient AUCUNE donnée personnelle ni code secret :
@@ -32,7 +32,7 @@ revoke all on schema private from public, anon, authenticated;
 -- Paramètres de l'événement (une seule ligne, id = 1)
 create table if not exists public.settings (
   id                    int primary key default 1 check (id = 1),
-  event_name            text not null default 'Secret Santa',
+  event_name            text not null default 'Spyder Secret Santa',
   group_code_hash       text,
   registration_deadline timestamptz not null default (now() + interval '7 days'),
   draw_at               timestamptz not null default (now() + interval '8 days'),

@@ -4,13 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>QR code</title>
+  <title>QR code – Spyder Secret Santa</title>
+  <link rel="icon" href="spyder-santa.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="site-header">
-    <h1>QR code du site</h1>
-    <p class="tagline">Outil pour l'organisateur.</p>
+    <img class="mascot" src="spyder-santa.svg" alt="" width="348" height="288">
+    <h1>Spyder Secret Santa</h1>
+    <p class="tagline">QR code du site – outil pour l'organisateur.</p>
   </header>
   <main>
     <section class="card">
@@ -18,7 +23,7 @@
       <input id="url" type="text" spellcheck="false">
       <div class="qr-wrap">
         <p><canvas id="qr" width="1024" height="1024" aria-label="QR code"></canvas></p>
-        <a id="download" class="btn btn-primary" download="qr-code-secret-santa.png" href="#">Télécharger le PNG</a>
+        <a id="download" class="btn btn-primary" download="qr-code-spyder-secret-santa.png" href="#">Télécharger le PNG</a>
       </div>
       <p class="muted small">Le QR code ne contient que l'adresse du site, pas le code du groupe :
         communiquez celui-ci séparément (à l'oral, par message…).</p>
