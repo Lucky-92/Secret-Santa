@@ -461,6 +461,7 @@
     $('adm-count').textContent = names.length;
     $('adm-deadline').textContent = fmtDate(st.registration_deadline);
     $('adm-draw').textContent = fmtDate(st.draw_at);
+    $('adm-logins').textContent = st.admin_login_count != null ? st.admin_login_count : '–';
     const ul = $('adm-names');
     ul.textContent = '';
     for (const n of names) {
@@ -484,7 +485,7 @@
       // heure passée : on rafraîchit, ce qui déclenche le tirage côté serveur
       if (left <= 0 && Date.now() >= adminRefreshAt) {
         adminRefreshAt = Date.now() + 4000;
-        adminCall('admin_login', {}).then((res) => { if (res && res.ok) setAdminStatus(res); });
+        adminCall('admin_refresh', {}).then((res) => { if (res && res.ok) setAdminStatus(res); });
       }
     }
     $('adm-state').textContent = state;

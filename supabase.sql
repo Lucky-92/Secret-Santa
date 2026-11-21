@@ -49,6 +49,8 @@ alter table public.settings add column if not exists admin_login         text;
 alter table public.settings add column if not exists admin_password_hash text;
 alter table public.settings add column if not exists admin_failed        int not null default 0;
 alter table public.settings add column if not exists admin_locked_until  timestamptz;
+alter table public.settings add column if not exists admin_login_count   int not null default 0;  -- connexions réussies à l'espace organisateur
+alter table public.settings add column if not exists admin_last_login_at timestamptz;
 
 create table if not exists public.participants (
   id              bigint generated always as identity primary key,
@@ -414,13 +416,32 @@ language sql stable set search_path = '' as $$
     'draw_done', s.draw_done_at is not null,
     'draw_error', s.draw_error,
     'assignments', (select count(*) from public.assignments),
+    'admin_login_count', s.admin_login_count,
     'server_now', floor(extract(epoch from clock_timestamp()) * 1000)
   )
   from public.settings s where s.id = 1
 $$;
 
--- Connexion : renvoie l'état (inscrits, dates, statut du tirage), jamais les paires
+-- Connexion (formulaire) : incrémente le compteur de connexions,
+-- puis renvoie l'état (inscrits, dates, statut du tirage), jamais les paires
 create or replace function public.admin_login(p_login text, p_password text) returns json
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_err text := private.admin_auth(p_login, p_password);
+begin
+  if v_err is not null then
+    return json_build_object('ok', false, 'error', v_err);
+  end if;
+  update public.settings
+     set admin_login_count = admin_login_count + 1,
+         admin_last_login_at = now()
+   where id = 1;
+  perform private.run_draw_if_due();
+  return private.admin_status();
+end $$;
+
+-- Rafraîchissement du tableau de bord (ne compte pas comme une connexion)
+create or replace function public.admin_refresh(p_login text, p_password text) returns json
 language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_err text := private.admin_auth(p_login, p_password);
@@ -682,11 +703,13 @@ grant execute on function public.get_my_match(text, text, text)              to 
 
 -- Espace organisateur (protégé par identifiant + mot de passe)
 revoke all on function public.admin_login(text, text)                        from public, anon, authenticated;
+revoke all on function public.admin_refresh(text, text)                      from public, anon, authenticated;
 revoke all on function public.admin_reset_participants(text, text)           from public, anon, authenticated;
 revoke all on function public.admin_set_draw_in(text, text, int)             from public, anon, authenticated;
 revoke all on function public.admin_change_password(text, text, text)        from public, anon, authenticated;
 
 grant execute on function public.admin_login(text, text)                     to anon, authenticated;
+grant execute on function public.admin_refresh(text, text)                   to anon, authenticated;
 grant execute on function public.admin_reset_participants(text, text)        to anon, authenticated;
 grant execute on function public.admin_set_draw_in(text, text, int)          to anon, authenticated;
 grant execute on function public.admin_change_password(text, text, text)     to anon, authenticated;
